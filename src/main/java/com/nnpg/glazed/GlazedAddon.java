@@ -63,6 +63,7 @@ public class GlazedAddon extends MeteorAddon {
         Modules.get().add(new AutoPearlChain());
         Modules.get().add(new AutoSell());
         Modules.get().add(new AutoSpawnerSell());
+        Modules.get().add(new AutoRelog());
         Modules.get().add(new ChestAndShulkerStealer());
         Modules.get().add(new CoordSnapper());
         Modules.get().add(new EmergencyOrder());
