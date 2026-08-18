@@ -5,16 +5,26 @@ import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConnectScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
-import net.minecraft.client.multiplayer.ServerAddress;
 import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.network.chat.Component;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
 
 /**
  * AutoRelog
  * Otomatis disconnect lalu join balik ke server yang sama begitu
  * player menyentuh ketinggian (Y) tertentu (rentang y0 sampai bedrock/-64).
+ *
+ * Reconnect memakai reflection untuk memanggil ConnectScreen.startConnecting(...)
+ * apapun jumlah parameternya di versi Minecraft ini, supaya tidak gampang
+ * gagal compile kalau signature method-nya berubah antar versi.
  */
 public class AutoRelog extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -109,9 +119,48 @@ public class AutoRelog extends Module {
             return;
         }
 
-        ServerAddress address = ServerAddress.parse(lastServer.ip);
-        ConnectScreen.startConnecting(new TitleScreen(), mc, address, lastServer);
+        try {
+            ServerAddress address = ServerAddress.parse(lastServer.ip);
+            Screen parent = new TitleScreen();
 
-        info("Auto Relog: mencoba join ulang ke " + lastServer.ip);
+            Method target = null;
+            for (Method m : ConnectScreen.class.getDeclaredMethods()) {
+                if (!m.getName().equals("startConnecting") || !Modifier.isStatic(m.getModifiers())) continue;
+                target = m;
+                break;
+            }
+
+            if (target == null) {
+                error("Auto Relog: method startConnecting tidak ditemukan di ConnectScreen.");
+                return;
+            }
+
+            target.setAccessible(true);
+            Parameter[] params = target.getParameters();
+            Object[] args = new Object[params.length];
+
+            for (int i = 0; i < params.length; i++) {
+                Class<?> type = params[i].getType();
+                if (type.isAssignableFrom(Screen.class) || type.equals(Screen.class) || type.getSimpleName().equals("Screen")) {
+                    args[i] = parent;
+                } else if (type.equals(Minecraft.class)) {
+                    args[i] = mc;
+                } else if (type.equals(ServerAddress.class)) {
+                    args[i] = address;
+                } else if (type.equals(ServerData.class)) {
+                    args[i] = lastServer;
+                } else if (type.equals(boolean.class) || type.equals(Boolean.class)) {
+                    args[i] = false;
+                } else {
+                    // Parameter tambahan (mis. TransferState di versi baru) - biarkan null
+                    args[i] = null;
+                }
+            }
+
+            target.invoke(null, args);
+            info("Auto Relog: mencoba join ulang ke " + lastServer.ip);
+        } catch (Exception e) {
+            error("Auto Relog: gagal reconnect - " + e.getMessage());
+        }
     }
 }
