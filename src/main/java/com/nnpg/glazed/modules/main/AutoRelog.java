@@ -5,26 +5,15 @@ import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConnectScreen;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
-import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.multiplayer.resolver.ServerAddress;
 import net.minecraft.network.chat.Component;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.lang.reflect.Parameter;
-
 /**
  * AutoRelog
- * Otomatis disconnect lalu join balik ke server yang sama begitu
- * player menyentuh ketinggian (Y) tertentu (rentang y0 sampai bedrock/-64).
- *
- * Reconnect memakai reflection untuk memanggil ConnectScreen.startConnecting(...)
- * apapun jumlah parameternya di versi Minecraft ini, supaya tidak gampang
- * gagal compile kalau signature method-nya berubah antar versi.
+ * Otomatis disconnect lalu join balik ke server (default quansmp.xyz)
+ * begitu player menyentuh ketinggian (Y) tertentu (rentang y0 sampai bedrock/-64).
  */
 public class AutoRelog extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -58,9 +47,24 @@ public class AutoRelog extends Module {
         .build()
     );
 
+    private final Setting<String> serverIp = sgGeneral.add(new StringSetting.Builder()
+        .name("server-ip")
+        .description("Alamat server yang dituju saat join ulang.")
+        .defaultValue("quansmp.xyz")
+        .build()
+    );
+
+    private final Setting<Integer> serverPort = sgGeneral.add(new IntSetting.Builder()
+        .name("server-port")
+        .description("Port server yang dituju saat join ulang.")
+        .defaultValue(25565)
+        .min(1)
+        .max(65535)
+        .build()
+    );
+
     private boolean pendingReconnect = false;
     private int delayCounter = 0;
-    private ServerData lastServer = null;
 
     public AutoRelog() {
         super(GlazedAddon.CATEGORY, "auto-relog", "Keluar dan join ulang otomatis saat mencapai ketinggian tertentu.");
@@ -70,7 +74,6 @@ public class AutoRelog extends Module {
     public void onActivate() {
         pendingReconnect = false;
         delayCounter = 0;
-        lastServer = mc.getCurrentServer();
     }
 
     @Override
@@ -90,13 +93,6 @@ public class AutoRelog extends Module {
                 : y >= triggerHeight.get();
 
             if (hit) {
-                ServerData server = mc.getCurrentServer();
-                if (server == null) {
-                    error("Auto Relog: tidak terhubung ke server, tidak bisa relog.");
-                    return;
-                }
-
-                lastServer = server;
                 pendingReconnect = true;
                 delayCounter = 0;
 
@@ -114,51 +110,10 @@ public class AutoRelog extends Module {
     }
 
     private void reconnect() {
-        if (lastServer == null) {
-            error("Auto Relog: tidak ada data server terakhir untuk reconnect.");
-            return;
-        }
-
         try {
-            ServerAddress address = ServerAddress.parse(lastServer.ip);
-            Screen parent = new TitleScreen();
-
-            Method target = null;
-            for (Method m : ConnectScreen.class.getDeclaredMethods()) {
-                if (!m.getName().equals("startConnecting") || !Modifier.isStatic(m.getModifiers())) continue;
-                target = m;
-                break;
-            }
-
-            if (target == null) {
-                error("Auto Relog: method startConnecting tidak ditemukan di ConnectScreen.");
-                return;
-            }
-
-            target.setAccessible(true);
-            Parameter[] params = target.getParameters();
-            Object[] args = new Object[params.length];
-
-            for (int i = 0; i < params.length; i++) {
-                Class<?> type = params[i].getType();
-                if (type.isAssignableFrom(Screen.class) || type.equals(Screen.class) || type.getSimpleName().equals("Screen")) {
-                    args[i] = parent;
-                } else if (type.equals(Minecraft.class)) {
-                    args[i] = mc;
-                } else if (type.equals(ServerAddress.class)) {
-                    args[i] = address;
-                } else if (type.equals(ServerData.class)) {
-                    args[i] = lastServer;
-                } else if (type.equals(boolean.class) || type.equals(Boolean.class)) {
-                    args[i] = false;
-                } else {
-                    // Parameter tambahan (mis. TransferState di versi baru) - biarkan null
-                    args[i] = null;
-                }
-            }
-
-            target.invoke(null, args);
-            info("Auto Relog: mencoba join ulang ke " + lastServer.ip);
+            ServerAddress address = new ServerAddress(serverIp.get(), serverPort.get());
+            ConnectScreen.startConnecting(new TitleScreen(), mc, address, null, false, null);
+            info("Auto Relog: mencoba join ulang ke " + serverIp.get());
         } catch (Exception e) {
             error("Auto Relog: gagal reconnect - " + e.getMessage());
         }
