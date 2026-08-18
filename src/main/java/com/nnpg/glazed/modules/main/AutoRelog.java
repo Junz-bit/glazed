@@ -14,6 +14,8 @@ import net.minecraft.network.chat.Component;
  * AutoRelog
  * Otomatis disconnect lalu join balik ke server (default quansmp.xyz)
  * begitu player menyentuh ketinggian (Y) tertentu (rentang y0 sampai bedrock/-64).
+ * Setelah 1x proses relog selesai, modul otomatis OFF sendiri supaya tidak
+ * looping disconnect-connect terus-terusan kalau posisi masih di zona trigger.
  */
 public class AutoRelog extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -106,6 +108,11 @@ public class AutoRelog extends Module {
         if (delayCounter >= rejoinDelayTicks.get()) {
             pendingReconnect = false;
             reconnect();
+
+            // Matiin modul sendiri setelah 1x proses relog, biar nggak
+            // disconnect-connect terus-terusan (looping) kalau player masih
+            // ada di zona ketinggian yang sama pas baru join lagi.
+            toggle();
         }
     }
 
