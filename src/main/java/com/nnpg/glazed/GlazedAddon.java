@@ -33,7 +33,6 @@ public class GlazedAddon extends MeteorAddon {
         Modules.get().add(new BedrockVoidESP());
         Modules.get().add(new BeehiveESP());
         Modules.get().add(new BlockNotifier());
-        Modules.get().add(new ChunkFinder());
         Modules.get().add(new CollectibleESP());
         Modules.get().add(new CoveredHole());
         Modules.get().add(new DeepslateESP());
