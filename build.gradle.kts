@@ -18,6 +18,10 @@ repositories {
         url = uri("https://maven.meteordev.org/snapshots")
     }
     maven {
+    name = "EnjaraiMirror"
+    url = uri("https://maven.enjarai.dev/mirrors")
+    }
+    maven {
         url = uri("https://jitpack.io")
     }
     maven {
