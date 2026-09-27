@@ -21,10 +21,6 @@ repositories {
         url = uri("https://jitpack.io")
     }
     maven {
-        name = "Bawnorton"
-        url = uri("https://maven.bawnorton.com/releases")
-    }
-    maven {
         // Hosts nether-pathfinder, which Baritone's elytra process loads on startup.
         name = "babbaj"
         url = uri("https://babbaj.github.io/maven/")
