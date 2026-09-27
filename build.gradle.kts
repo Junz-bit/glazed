@@ -21,6 +21,10 @@ repositories {
         url = uri("https://jitpack.io")
     }
     maven {
+    name = "Modrinth"
+    url = uri("https://api.modrinth.com/maven")
+    }
+    maven {
         // Hosts nether-pathfinder, which Baritone's elytra process loads on startup.
         name = "babbaj"
         url = uri("https://babbaj.github.io/maven/")
@@ -42,14 +46,14 @@ dependencies {
     // ExploitPreventer by NikOverflow (MIT), shipped inside our jar so it always loads.
     // not added to the dev runtime because it hard-depends on the full fabric-api and we only
     // pull the few modules IAS needs
-    include("com.nikoverflow:exploitpreventer:1.1.0")
+    include("maven.modrinth:VdINCTcD:uJ26azBY")
     // Baritone touches NetherPathfinder during BaritoneAPI's static init, so the dev client
     // crashes on startup without it. Runtime-only: it is not bundled into the released jar.
     runtimeOnly("dev.babbaj:nether-pathfinder:1.4.1")
     // ExploitPreventer hard-depends on the whole fabric-api, so dev needs all of it, not just the
     // couple of modules IAS wanted
     modRuntimeOnly("net.fabricmc.fabric-api:fabric-api:${properties["fabric_api_version"] as String}")
-    modRuntimeOnly("com.nikoverflow:exploitpreventer:1.1.0")
+    modRuntimeOnly("maven.modrinth:VdINCTcD:uJ26azBY")
     // exploitpreventer carries these two inside itself. fabric unpacks nested jars in a real
     // install but not for a dev mod, so without these it dies on its own IAPI class
     runtimeOnly("com.nikoverflow:ExploitPreventer-API:1.0.0")
