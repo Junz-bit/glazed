@@ -49,7 +49,6 @@ public class GlazedAddon extends MeteorAddon {
         Modules.get().add(new RegionMap());
         Modules.get().add(new RotatedDeepslateESP());
         Modules.get().add(new SkeletonESP());
-        Modules.get().add(new SkeletonSpawnerWaypoint());
         Modules.get().add(new SusChunkFinder());
         Modules.get().add(new SweetBerryESP());
         Modules.get().add(new SpawnerNotifier());
